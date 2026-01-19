@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>ZZZ Player - Retro Screen</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            background-color: #121212;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            font-family: sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .player-container {
+            position: relative;
+            width: 550px;
+            height: 650px;
+        }
+
+        .layer { position: absolute; left: 0; width: 100%; pointer-events: none; }
+        .bg-layer { top: 0; z-index: 1; }
+        .deck-layer { bottom: 0; z-index: 3; }
+
+        /* ДИСК */
+        .disc-wrapper {
+            position: absolute; width: 100%; z-index: 2;
+            top: 105px; display: flex; justify-content: center;
+        }
+        .disc-img {
+            width: 83%; border-radius: 50%;
+            transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .player-container.playing .disc-img { animation: spin 6s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ИНДИКАТОРЫ */
+        .led-group {
+            position: absolute; z-index: 4; 
+            bottom: 242px; left: 74px; gap: 10px;      
+            display: flex; pointer-events: none;
+        }
+        .led { 
+            width: 8px; height: 8px; border-radius: 50%; 
+            background: #2a0a0a; transition: 0.2s; box-shadow: inset 0 0 2px #000; 
+        }
+        .player-container.powered .led.power-led { background: #ffaa00; box-shadow: 0 0 8px #ffaa00; }
+        .player-container.playing .led.play-led { background: #ff3333; box-shadow: 0 0 8px #ff3333; }
+
+
+        /* --- ЭКРАН (ОБНОВЛЕННЫЙ) --- */
+        .screen-mask {
+            position: absolute; z-index: 5; 
+            bottom: 65px; left: 50%; transform: translateX(-50%);
+            width: 380px; height: 45px; 
+            
+            /* ПРОЗРАЧНЫЙ ФОН + легкое затемнение для читаемости */
+            background: rgba(0, 0, 0, 0.3); 
+            
+            display: flex; align-items: center;
+            overflow: hidden; border-radius: 4px; pointer-events: none;
+            
+            /* Внутренняя тень, чтобы экран казался углубленным */
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+
+        /* Эффект сетки (пикселей) поверх всего экрана */
+        .screen-mask::after {
+            content: '';
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent 0px,
+                transparent 2px,
+                rgba(0, 0, 0, 0.3) 3px
+            );
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* --- ЭКВАЛАЙЗЕР (РЕТРО СТИЛЬ) --- */
+        .equalizer-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            padding: 0 10px; box-sizing: border-box;
+            opacity: 0; transition: opacity 0.5s;
+            z-index: 1;
+        }
+        .player-container.playing .equalizer-bg { opacity: 0.6; } /* Видимость при игре */
+
+        .eq-bar {
+            width: 8px;
+            height: 10%;
+            
+            /* ХИТРОСТЬ: Делаем полоски "нарезанными" на сегменты */
+            background: repeating-linear-gradient(
+                to top,
+                #ffaa00 0px,
+                #ffaa00 2px,  /* Цветная часть */
+                transparent 2px,
+                transparent 4px /* Прозрачный разрыв */
+            );
+            
+            /* Свечение */
+            filter: drop-shadow(0 0 2px #ffaa00);
+            
+            animation: bounce 0s infinite alternate;
+        }
+        @keyframes bounce { 0% { height: 10%; } 100% { height: 90%; } }
+
+
+        /* --- ТЕКСТ --- */
+        .screen-content { 
+            position: relative; z-index: 2; 
+            width: 100%; opacity: 0; transition: opacity 0.5s; 
+            display: flex; align-items: center; height: 100%;
+        }
+        .player-container.powered .screen-content { opacity: 1; }
+
+        .marquee {
+            font-family: 'Share Tech Mono', monospace; 
+            font-size: 18px; color: #e0e0e0; 
+            white-space: nowrap; 
+            transform: translateX(100%); 
+            /* Тень для текста, чтобы он не сливался с эквалайзером */
+            text-shadow: 2px 2px 0px #000, 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        .marquee.scrolling { animation: car-scroll 8s linear infinite; }
+        @keyframes car-scroll {
+            0% { transform: translateX(100%); } 
+            100% { transform: translateX(-150%); } 
+        }
+
+
+        /* --- МЕНЮ --- */
+        .playlist-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(10, 10, 10, 0.95);
+            display: flex; flex-direction: column; justify-content: center;
+            padding: 0 15px;
+            font-family: 'Share Tech Mono', monospace; 
+            font-size: 16px; color: #555;
+            opacity: 0; transition: opacity 0.2s;
+            z-index: 20; /* Выше чем сетка экрана */
+        }
+        .playlist-overlay.visible { opacity: 1; pointer-events: auto; }
+        .track-item { 
+            padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+            border-bottom: 1px solid #222;
+        }
+        .track-item.selected { 
+            color: #ffaa00; text-shadow: 0 0 8px rgba(255, 170, 0, 0.6); 
+            font-weight: bold; background: rgba(255, 170, 0, 0.1);
+        }
+        .track-item::before { content: "  "; }
+        .track-item.selected::before { content: "> "; }
+
+        /* КНОПКИ */
+        .btn-hitbox { position: absolute; z-index: 30; cursor: pointer; opacity: 0; }
+        #btn-power { width: 40px; height: 25px; bottom: 234px; left: 13px; border-radius: 5px; }
+        #btn-play  { width: 50px; height: 50px; bottom: 208px; right: 54px; border-radius: 50%; }
+        #btn-stop  { width: 30px; height: 30px; bottom: 227px; right: 12px; border-radius: 50%; }
+        #btn-enter { width: 70px; height: 10px; bottom: 160px; left: 58px; }
+        #btn-menu  { width: 70px; height: 10px; bottom: 160px; left: 130px; }
+        #btn-home  { width: 70px; height: 10px; bottom: 160px; left: 202px; }
+
+        /* UPLOAD BTN */
+        .upload-controls { margin-top: 20px; z-index: 100; }
+        .upload-btn {
+            background: #111; color: #ddd; border: 2px solid #ffaa00; padding: 10px 25px;
+            font-family: 'Share Tech Mono', monospace; font-size: 18px; cursor: pointer;
+            text-transform: uppercase; letter-spacing: 2px; transition: 0.3s;
+            clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+        }
+        .upload-btn:hover { background: #ffaa00; color: #000; box-shadow: 0 0 15px #ffaa00; }
+        #file-input { display: none; }
+
+    </style>
+</head>
+<body>
+
+    <div class="player-container" id="player">
+        <img src="bg_card.png" class="layer bg-layer">
+        <div class="disc-wrapper"><img src="disc.png" class="disc-img"></div>
+        <img src="player_body.png" class="layer deck-layer">
+
+        <!-- Лампочки -->
+        <div class="led-group">
+            <div class="led power-led"></div>
+            <div class="led play-led"></div>
+            <div class="led play-led"></div>
+        </div>
+        
+        <!-- Экран -->
+        <div class="screen-mask">
+            
+            <!-- ЭКВАЛАЙЗЕР -->
+            <div class="equalizer-bg" id="equalizer"></div>
+
+            <!-- ТЕКСТ -->
+            <div class="screen-content" id="main-screen">
+                <div class="marquee" id="marquee-text">WAITING FOR DISCS...</div>
+            </div>
+            
+            <!-- МЕНЮ -->
+            <div class="playlist-overlay" id="playlist-screen"></div>
+        </div>
+
+        <!-- КНОПКИ -->
+        <div id="btn-power" class="btn-hitbox" title="Power"></div>
+        <div id="btn-play" class="btn-hitbox" title="Play"></div>
+        <div id="btn-stop" class="btn-hitbox" title="Stop"></div>
+        <div id="btn-enter" class="btn-hitbox" title="Prev/Sel"></div>
+        <div id="btn-menu"  class="btn-hitbox" title="Menu"></div>
+        <div id="btn-home"  class="btn-hitbox" title="Next/Scroll"></div>
+    </div>
+
+    <div class="upload-controls">
+        <label for="file-input" class="upload-btn">Load Discs</label>
+        <input type="file" id="file-input" multiple accept="audio/*">
+    </div>
+
+    <audio id="audio"></audio>
+
+    <script>
+        const quotesPool = [
+            "Fierce tigers prowl Yunkui Summit!",
+            "Proxy, are you ready for the Hollow?",
+            "Don't get lost in the static.",
+            "Bangboo reporting for duty!",
+            "Signal stablized. Connection secure.",
+            "Wipeout! That was intense.",
+            "Time to make some Denny!"
+        ];
+
+        let tracks = [];
+
+        const player = document.getElementById('player');
+        const audio = document.getElementById('audio');
+        const marqueeText = document.getElementById('marquee-text');
+        const mainScreen = document.getElementById('main-screen');
+        const playlistScreen = document.getElementById('playlist-screen');
+        const fileInput = document.getElementById('file-input');
+        const equalizer = document.getElementById('equalizer');
+
+        const btnPower = document.getElementById('btn-power');
+        const btnPlay = document.getElementById('btn-play');
+        const btnStop = document.getElementById('btn-stop');
+        const btnEnter = document.getElementById('btn-enter'); 
+        const btnMenu = document.getElementById('btn-menu');   
+        const btnHome = document.getElementById('btn-home');   
+
+        let isPowered = false;
+        let isPlaying = false;
+        let isMenuOpen = false;
+        let currentTrackIndex = 0;
+        let menuSelectionIndex = 0;
+        let showQuoteNext = false; 
+
+        // Инициализация Эквалайзера (20 столбиков)
+        function initEqualizer() {
+            for(let i=0; i<20; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'eq-bar';
+                // Случайная задержка для хаотичного движения
+                bar.style.animationDuration = (0.2 + Math.random() * 0.4) + 's';
+                equalizer.appendChild(bar);
+            }
+        }
+        initEqualizer();
+
+        // Смена текста (Круг прошел)
+        marqueeText.addEventListener('animationiteration', () => {
+            if (!isPlaying || tracks.length === 0) return;
+            const track = tracks[currentTrackIndex];
+            if (showQuoteNext) {
+                marqueeText.innerText = `"${track.quote}"`;
+                marqueeText.style.color = "#ffdd88"; // Желтый для цитаты
+            } else {
+                marqueeText.innerText = `TRACK ${currentTrackIndex + 1}: ${track.title}`;
+                marqueeText.style.color = "#e0e0e0"; // Белый для названия
+            }
+            showQuoteNext = !showQuoteNext;
+        });
+
+        function startMarquee() {
+            marqueeText.classList.add('scrolling');
+            marqueeText.innerText = `NOW PLAYING: ${tracks[currentTrackIndex].title}`;
+            marqueeText.style.color = "#e0e0e0";
+            showQuoteNext = true;
+        }
+
+        function stopMarquee(msg) {
+            marqueeText.classList.remove('scrolling');
+            void marqueeText.offsetWidth; 
+            marqueeText.style.transform = "translateX(0)";
+            if (msg) marqueeText.innerText = msg;
+            marqueeText.style.color = "#e0e0e0";
+        }
+
+        // Загрузка
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            files.forEach(file => {
+                const fileUrl = URL.createObjectURL(file);
+                const cleanName = file.name.replace(/\.[^/.]+$/, "");
+                const randomQuote = quotesPool[Math.floor(Math.random() * quotesPool.length)];
+                tracks.push({ title: cleanName, file: fileUrl, quote: randomQuote });
+            });
+
+            if (tracks.length > 0 && audio.src === "") {
+                currentTrackIndex = 0;
+                menuSelectionIndex = 0;
+                loadTrack(0);
+                if(isPowered) stopMarquee("DISCS LOADED");
+            }
+        });
+
+        // Плеер
+        function loadTrack(index) {
+            if (tracks.length === 0) return;
+            if (index < 0) index = tracks.length - 1;
+            if (index >= tracks.length) index = 0;
+            currentTrackIndex = index;
+            audio.src = tracks[currentTrackIndex].file;
+            renderPlaylist(); 
+            if (isPlaying) { stopMarquee(); setTimeout(startMarquee, 100); }
+        }
+
+        function playTrack() {
+            if (tracks.length === 0) return;
+            audio.play();
+            player.classList.add('playing');
+            isPlaying = true;
+            startMarquee();
+        }
+
+        function stopPlayer() {
+            audio.pause();
+            audio.currentTime = 0;
+            player.classList.remove('playing');
+            isPlaying = false;
+            stopMarquee("STOPPED");
+        }
+
+        function renderPlaylist() {
+            playlistScreen.innerHTML = '';
+            if (tracks.length === 0) {
+                playlistScreen.innerHTML = '<div style="text-align:center">NO FILES</div>';
+                return;
+            }
+            let prevIdx = (menuSelectionIndex - 1 + tracks.length) % tracks.length;
+            let currIdx = menuSelectionIndex;
+            let nextIdx = (menuSelectionIndex + 1) % tracks.length;
+            const indices = tracks.length < 3 ? tracks.map((_, i) => i) : [prevIdx, currIdx, nextIdx];
+
+            indices.forEach((idx) => {
+                const div = document.createElement('div');
+                div.className = 'track-item';
+                if (idx === menuSelectionIndex) div.classList.add('selected'); 
+                div.innerText = tracks[idx].title;
+                playlistScreen.appendChild(div);
+            });
+        }
+
+        // Кнопки
+        btnPower.addEventListener('click', () => {
+            isPowered = !isPowered;
+            if (isPowered) {
+                player.classList.add('powered');
+                if (tracks.length > 0) { loadTrack(currentTrackIndex); stopMarquee("SYSTEM READY"); } 
+                else { stopMarquee("INSERT DISC"); }
+            } else {
+                player.classList.remove('powered');
+                stopPlayer();
+                isMenuOpen = false;
+                toggleMenuUI();
+                stopMarquee(" ");
+            }
+        });
+
+        btnPlay.addEventListener('click', () => {
+            if (!isPowered) return;
+            if (tracks.length === 0) return;
+            if (isPlaying) {
+                audio.pause();
+                player.classList.remove('playing');
+                isPlaying = false;
+                stopMarquee("PAUSED");
+            } else { playTrack(); }
+        });
+
+        btnStop.addEventListener('click', () => { if(isPowered) stopPlayer(); });
+
+        btnMenu.addEventListener('click', () => {
+            if (!isPowered || tracks.length === 0) return;
+            isMenuOpen = !isMenuOpen;
+            toggleMenuUI();
+        });
+
+        function toggleMenuUI() {
+            if (isMenuOpen) {
+                playlistScreen.classList.add('visible');
+                mainScreen.style.opacity = '0';
+                menuSelectionIndex = currentTrackIndex; 
+                renderPlaylist();
+            } else {
+                playlistScreen.classList.remove('visible');
+                mainScreen.style.opacity = '1';
+            }
+        }
+
+        btnHome.addEventListener('click', () => { 
+            if (!isPowered || tracks.length === 0) return;
+            if (isMenuOpen) { menuSelectionIndex = (menuSelectionIndex + 1) % tracks.length; renderPlaylist(); }
+            else { loadTrack(currentTrackIndex + 1); if (isPlaying) playTrack(); }
+        });
+
+        btnEnter.addEventListener('click', () => { 
+            if (!isPowered || tracks.length === 0) return;
+            if (isMenuOpen) { loadTrack(menuSelectionIndex); playTrack(); isMenuOpen = false; toggleMenuUI(); }
+            else { loadTrack(currentTrackIndex - 1); if (isPlaying) playTrack(); }
+        });
+
+        audio.addEventListener('ended', () => {
+            if (tracks.length > 0) { loadTrack(currentTrackIndex + 1); playTrack(); }
+        });
+    </script>
+</body>
+</html>
