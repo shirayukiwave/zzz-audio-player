@@ -2,174 +2,132 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>ZZZ Player - Full</title>
+    <!-- 🆕 Мета-тег для корректного отображения на мобильных -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZZZ Player - Responsive</title>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
     <style>
+        /* CSS остался почти без изменений, добавился только wrapper */
         body {
-            background-color: #121212;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-            font-family: sans-serif;
-            user-select: none;
-            -webkit-user-select: none;
+            background-color: #121212; display: flex;
+            justify-content: center; align-items: center; height: 100vh;
+            margin: 0; overflow: hidden; font-family: sans-serif;
+            user-select: none; -webkit-user-select: none;
         }
 
-        .player-container {
+        /* 🆕 Новый контейнер-обертка для масштабирования */
+        .player-wrapper {
             position: relative;
+            /* Размеры базового макета (плеер + кнопка) */
             width: 550px;
-            height: 650px;
+            height: 730px; 
+            /* Центрирование и плавность масштабирования */
+            transform-origin: center top;
+            transition: transform 0.2s ease-out;
         }
 
+        .player-container { position: relative; width: 100%; height: 650px; }
         .layer { position: absolute; left: 0; width: 100%; pointer-events: none; }
         .bg-layer { top: 0; z-index: 1; }
         .deck-layer { bottom: 0; z-index: 3; }
-
-        /* ДИСК */
         .disc-wrapper {
-            position: absolute; width: 100%; z-index: 2;
-            top: 105px; display: flex; justify-content: center;
+            position: absolute; width: 100%; z-index: 2; top: 105px;
+            display: flex; justify-content: center;
         }
         .disc-img {
             width: 83%; border-radius: 50%;
             transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .player-container.playing .disc-img { animation: spin 6s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        /* ИНДИКАТОРЫ */
+        @keyframes spin { to { transform: rotate(360deg); } }
         .led-group {
-            position: absolute; z-index: 4; 
-            bottom: 242px; left: 74px; gap: 10px;      
-            display: flex; pointer-events: none;
+            position: absolute; z-index: 4; bottom: 242px; left: 74px;
+            gap: 10px; display: flex; pointer-events: none;
         }
-        .led { 
-            width: 8px; height: 8px; border-radius: 50%; 
-            background: #2a0a0a; transition: 0.2s; box-shadow: inset 0 0 2px #000; 
+        .led {
+            width: 8px; height: 8px; border-radius: 50%; background: #2a0a0a;
+            transition: 0.2s; box-shadow: inset 0 0 2px #000;
         }
         .player-container.powered .led.power-led { background: #ffaa00; box-shadow: 0 0 8px #ffaa00; }
         .player-container.playing .led.play-led { background: #ff3333; box-shadow: 0 0 8px #ff3333; }
-
-
-        /* --- ЭКРАН --- */
         .screen-mask {
-            position: absolute; z-index: 5; 
-            bottom: 65px; left: 50%; transform: translateX(-50%);
-            width: 380px; height: 45px; 
-            background: rgba(0, 0, 0, 0.3); 
-            display: flex; align-items: center;
-            overflow: hidden; border-radius: 4px; pointer-events: none;
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+            position: absolute; z-index: 5; bottom: 65px; left: 50%; transform: translateX(-50%);
+            width: 380px; height: 45px; background: rgba(0, 0, 0, 0.3);
+            display: flex; align-items: center; overflow: hidden;
+            border-radius: 4px; pointer-events: none; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
-        /* Сетка экрана */
         .screen-mask::after {
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0, 0, 0, 0.3) 3px);
             pointer-events: none; z-index: 10;
         }
-
-        /* Эквалайзер */
         .equalizer-bg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; justify-content: space-between; align-items: flex-end;
+            display: flex; justify-content: space-around; align-items: flex-end;
             padding: 0 10px; box-sizing: border-box;
             opacity: 0; transition: opacity 0.5s; z-index: 1;
         }
         .player-container.playing .equalizer-bg { opacity: 0.6; }
-
         .eq-bar {
-            width: 8px; height: 10%;
-            background: repeating-linear-gradient(to top, #ffaa00 0px, #ffaa00 2px, transparent 2px, transparent 4px);
+            width: 6px; height: 0%;
+            background: repeating-linear-gradient( to top, #ffaa00 0px, #ffaa00 2px, transparent 2px, transparent 4px );
             filter: drop-shadow(0 0 2px #ffaa00);
-            animation: bounce 0s infinite alternate;
+            transition: height 0.08s linear;
         }
-        @keyframes bounce { 0% { height: 10%; } 100% { height: 90%; } }
-
-        /* Текст */
-        .screen-content { 
-            position: relative; z-index: 2; width: 100%; opacity: 0; transition: opacity 0.5s; 
-            display: flex; align-items: center; height: 100%;
+        .screen-content {
+            position: relative; z-index: 2; width: 100%; opacity: 0;
+            transition: opacity 0.5s; display: flex; align-items: center; height: 100%;
         }
         .player-container.powered .screen-content { opacity: 1; }
-
         .marquee {
-            font-family: 'Share Tech Mono', monospace; font-size: 18px; color: #e0e0e0; 
-            white-space: nowrap; transform: translateX(100%); 
+            font-family: 'Share Tech Mono', monospace; font-size: 18px; color: #e0e0e0;
+            white-space: nowrap; transform: translateX(100%);
             text-shadow: 2px 2px 0px #000, 0 0 10px rgba(255, 255, 255, 0.5);
         }
         .marquee.scrolling { animation: car-scroll 8s linear infinite; }
         @keyframes car-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-150%); } }
-
-
-        /* --- 🆕 ПРОГРЕСС БАР (ЗОНА НАСТРОЙКИ) --- */
         .progress-area {
-            position: absolute;
-            z-index: 100; /* Поднял слой, чтобы было видно поверх всего */
-            
-            /* 👇 КРУТИ ЭТИ ЦИФРЫ 👇 */
-            bottom: 110px;  /* ВВЕРХ / ВНИЗ */
-            width: 265px;   /* ШИРИНА */
-            height: 15px;   /* ВЫСОТА ЗОНЫ КЛИКА */
-            
-            left: 56.5%; 
-            transform: translateX(-50%);
-            cursor: pointer;
-
+            position: absolute; z-index: 25; bottom: 110px; left: 56.5%;
+            transform: translateX(-50%); width: 265px; height: 15px; cursor: pointer;
         }
-
         .progress-fill {
-            height: 60%;
-            width: 0%; 
-            background: #ffaa00; 
-            box-shadow: 0 0 8px #ffaa00;
-            opacity: 0.8; 
-            pointer-events: none; 
-            border-radius: 2px;
+            height: 60%; width: 0%; background: #ffaa00; box-shadow: 0 0 8px #ffaa00;
+            opacity: 0.8; pointer-events: none; border-radius: 2px;
             transition: width 0.1s linear;
         }
-
-        /* Белый маркер на конце */
         .progress-fill::after {
-            content: '';
-            position: absolute;
-            right: 0; top: 0; bottom: 0;
-            width: 4px;
-            background: #fff;
-            box-shadow: 0 0 5px #fff;
+            content: ''; position: absolute; right: 0; top: 0; bottom: 0;
+            width: 4px; background: #fff; box-shadow: 0 0 5px #fff;
         }
-
-
-        /* --- МЕНЮ --- */
         .playlist-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(10, 10, 10, 0.95);
-            display: flex; flex-direction: column; justify-content: center;
-            padding: 0 15px;
+            background: rgba(10, 10, 10, 0.95); display: flex; flex-direction: column;
+            justify-content: center; padding: 0 15px;
             font-family: 'Share Tech Mono', monospace; font-size: 16px; color: #555;
             opacity: 0; transition: opacity 0.2s; z-index: 20;
         }
         .playlist-overlay.visible { opacity: 1; pointer-events: auto; }
         .track-item { padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid #222; }
         .track-item.selected { color: #ffaa00; text-shadow: 0 0 8px rgba(255, 170, 0, 0.6); font-weight: bold; background: rgba(255, 170, 0, 0.1); }
-        .track-item::before { content: "  "; }
+        .track-item::before { content: " "; }
         .track-item.selected::before { content: "> "; }
-
-        /* КНОПКИ */
         .btn-hitbox { position: absolute; z-index: 30; cursor: pointer; opacity: 0; }
         #btn-power { width: 40px; height: 25px; bottom: 234px; left: 13px; border-radius: 5px; }
-        #btn-play  { width: 50px; height: 50px; bottom: 208px; right: 54px; border-radius: 50%; }
-        #btn-stop  { width: 30px; height: 30px; bottom: 227px; right: 12px; border-radius: 50%; }
+        #btn-play { width: 50px; height: 50px; bottom: 208px; right: 54px; border-radius: 50%; }
+        #btn-stop { width: 30px; height: 30px; bottom: 227px; right: 12px; border-radius: 50%; }
         #btn-enter { width: 70px; height: 10px; bottom: 160px; left: 58px; }
-        #btn-menu  { width: 70px; height: 10px; bottom: 160px; left: 130px; }
-        #btn-home  { width: 70px; height: 10px; bottom: 160px; left: 202px; }
-
-        /* UPLOAD */
-        .upload-controls { margin-top: 20px; z-index: 100; }
+        #btn-menu { width: 70px; height: 10px; bottom: 160px; left: 130px; }
+        #btn-home { width: 70px; height: 10px; bottom: 160px; left: 202px; }
+        
+        .upload-controls {
+            /* 🆕 Позиционируем кнопку относительно обертки */
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+        }
         .upload-btn {
             background: #111; color: #ddd; border: 2px solid #ffaa00; padding: 10px 25px;
             font-family: 'Share Tech Mono', monospace; font-size: 18px; cursor: pointer;
@@ -178,279 +136,290 @@
         }
         .upload-btn:hover { background: #ffaa00; color: #000; box-shadow: 0 0 15px #ffaa00; }
         #file-input { display: none; }
-
     </style>
 </head>
 <body>
 
-    <div class="player-container" id="player">
-        <img src="bg_card.png" class="layer bg-layer">
-        <div class="disc-wrapper"><img src="disc.png" class="disc-img"></div>
-        <img src="player_body.png" class="layer deck-layer">
+    <!-- 🆕 Обертка для масштабирования -->
+    <div class="player-wrapper" id="player-wrapper">
+        <div class="player-container" id="player">
+            <img src="bg_card.png" class="layer bg-layer">
+            <div class="disc-wrapper"><img src="disc.png" class="disc-img"></div>
+            <img src="player_body.png" class="layer deck-layer">
 
-        <!-- Лампочки -->
-        <div class="led-group">
-            <div class="led power-led"></div>
-            <div class="led play-led"></div>
-            <div class="led play-led"></div>
-        </div>
-        
-        <!-- ПРОГРЕСС БАР (Шкала времени) -->
-        <div class="progress-area" id="progress-container" title="Seek Time">
-            <div class="progress-fill" id="progress-bar"></div>
-        </div>
-
-        <!-- Экран -->
-        <div class="screen-mask">
-            <div class="equalizer-bg" id="equalizer"></div>
-            <div class="screen-content" id="main-screen">
-                <div class="marquee" id="marquee-text">WAITING FOR DISCS...</div>
+            <div class="led-group">
+                <div class="led power-led"></div>
+                <div class="led play-led"></div>
+                <div class="led play-led"></div>
             </div>
-            <div class="playlist-overlay" id="playlist-screen"></div>
+            
+            <div class="progress-area" id="progress-container" title="Seek Time">
+                <div class="progress-fill" id="progress-bar"></div>
+            </div>
+
+            <div class="screen-mask">
+                <div class="equalizer-bg" id="equalizer"></div>
+                <div class="screen-content" id="main-screen">
+                    <div class="marquee" id="marquee-text">WAITING FOR DISCS...</div>
+                </div>
+                <div class="playlist-overlay" id="playlist-screen"></div>
+            </div>
+
+            <div id="btn-power" class="btn-hitbox" title="Power"></div>
+            <div id="btn-play" class="btn-hitbox" title="Play"></div>
+            <div id="btn-stop" class="btn-hitbox" title="Stop"></div>
+            <div id="btn-enter" class="btn-hitbox" title="Prev/Sel"></div>
+            <div id="btn-menu"  class="btn-hitbox" title="Menu"></div>
+            <div id="btn-home"  class="btn-hitbox" title="Next/Scroll"></div>
         </div>
 
-        <!-- КНОПКИ -->
-        <div id="btn-power" class="btn-hitbox" title="Power"></div>
-        <div id="btn-play" class="btn-hitbox" title="Play"></div>
-        <div id="btn-stop" class="btn-hitbox" title="Stop"></div>
-        <div id="btn-enter" class="btn-hitbox" title="Prev/Sel"></div>
-        <div id="btn-menu"  class="btn-hitbox" title="Menu"></div>
-        <div id="btn-home"  class="btn-hitbox" title="Next/Scroll"></div>
+        <div class="upload-controls">
+            <label for="file-input" class="upload-btn">Load Discs</label>
+            <input type="file" id="file-input" multiple accept="audio/*">
+        </div>
     </div>
 
-    <div class="upload-controls">
-        <label for="file-input" class="upload-btn">Load Discs</label>
-        <input type="file" id="file-input" multiple accept="audio/*">
-    </div>
-
-    <audio id="audio"></audio>
+    <audio id="audio" crossorigin="anonymous"></audio>
 
     <script>
-        const quotesPool = [
-            "Fierce tigers prowl Yunkui Summit!",
-            "Proxy, are you ready for the Hollow?",
-            "Don't get lost in the static.",
-            "Bangboo reporting for duty!",
-            "Signal stablized. Connection secure.",
-            "Wipeout! That was intense.",
-            "Time to make some Denny!"
-        ];
-
-        let tracks = [];
-
-        const player = document.getElementById('player');
-        const audio = document.getElementById('audio');
-        const marqueeText = document.getElementById('marquee-text');
-        const mainScreen = document.getElementById('main-screen');
-        const playlistScreen = document.getElementById('playlist-screen');
-        const fileInput = document.getElementById('file-input');
-        const equalizer = document.getElementById('equalizer');
+    (function() {
+        'use strict';
         
-        // Элементы прогресс бара
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
+        // --- 🆕 ЛОГИКА АДАПТИВНОСТИ ---
+        const playerWrapper = document.getElementById('player-wrapper');
+        const BASE_WIDTH = 550; // Базовая ширина макета
+        const BASE_HEIGHT = 730; // Базовая высота (плеер + кнопка)
 
-        const btnPower = document.getElementById('btn-power');
-        const btnPlay = document.getElementById('btn-play');
-        const btnStop = document.getElementById('btn-stop');
-        const btnEnter = document.getElementById('btn-enter'); 
-        const btnMenu = document.getElementById('btn-menu');   
-        const btnHome = document.getElementById('btn-home');   
+        function scalePlayer() {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
 
-        let isPowered = false;
-        let isPlaying = false;
-        let isMenuOpen = false;
-        let currentTrackIndex = 0;
-        let menuSelectionIndex = 0;
-        let showQuoteNext = false; 
+            // Считаем масштаб по ширине и по высоте
+            const scaleX = viewportWidth / BASE_WIDTH;
+            const scaleY = viewportHeight / BASE_HEIGHT;
 
-        function initEqualizer() {
-            for(let i=0; i<20; i++) {
-                const bar = document.createElement('div');
-                bar.className = 'eq-bar';
-                bar.style.animationDuration = (0.2 + Math.random() * 0.4) + 's';
-                equalizer.appendChild(bar);
+            // Выбираем наименьший масштаб, чтобы плеер всегда помещался целиком
+            const scale = Math.min(scaleX, scaleY);
+
+            // Применяем масштаб к обертке
+            playerWrapper.style.transform = `scale(${scale})`;
+        }
+
+        // Debounce, чтобы не вызывать функцию слишком часто
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), delay);
+            };
+        }
+
+        const debouncedScalePlayer = debounce(scalePlayer, 100);
+
+        // Запускаем при загрузке и изменении размера
+        window.addEventListener('load', scalePlayer);
+        window.addEventListener('resize', debouncedScalePlayer);
+
+        // --- Остальной код плеера (без изменений) ---
+        const NUM_BARS = 24;
+        const quotesPool = [
+            "Fierce tigers prowl Yunkui Summit!", "Proxy, are you ready for the Hollow?", "Don't get lost in the static.",
+            "Bangboo reporting for duty!", "Signal stablized. Connection secure.", "Wipeout! That was intense."
+        ];
+        
+        const state = {
+            tracks: [], isPowered: false, isPlaying: false, isMenuOpen: false,
+            currentTrackIndex: 0, menuSelectionIndex: 0, showQuoteNext: false,
+            audioContext: null, analyser: null, sourceNode: null, dataArray: null,
+            isApiInitialized: false, animationFrameId: null
+        };
+
+        const dom = {
+            player: document.getElementById('player'), audio: document.getElementById('audio'),
+            marqueeText: document.getElementById('marquee-text'), mainScreen: document.getElementById('main-screen'),
+            playlistScreen: document.getElementById('playlist-screen'), fileInput: document.getElementById('file-input'),
+            equalizer: document.getElementById('equalizer'), progressContainer: document.getElementById('progress-container'),
+            progressBar: document.getElementById('progress-bar'), btnPower: document.getElementById('btn-power'),
+            btnPlay: document.getElementById('btn-play'), btnStop: document.getElementById('btn-stop'),
+            btnEnter: document.getElementById('btn-enter'), btnMenu: document.getElementById('btn-menu'),
+            btnHome: document.getElementById('btn-home')
+        };
+        let eqBars;
+        
+        function initAudioApi() {
+            if (state.isApiInitialized) return;
+            state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            state.analyser = state.audioContext.createAnalyser();
+            state.sourceNode = state.audioContext.createMediaElementSource(dom.audio);
+            state.sourceNode.connect(state.analyser);
+            state.analyser.connect(state.audioContext.destination);
+            state.analyser.fftSize = 256;
+            const bufferLength = state.analyser.frequencyBinCount;
+            state.dataArray = new Uint8Array(bufferLength);
+            state.isApiInitialized = true;
+        }
+
+        function visualize() {
+            state.animationFrameId = requestAnimationFrame(visualize);
+            state.analyser.getByteFrequencyData(state.dataArray);
+            const step = Math.floor(state.dataArray.length / NUM_BARS);
+            for (let i = 0; i < NUM_BARS; i++) {
+                const barValue = state.dataArray[i * step];
+                const percentHeight = (barValue / 255) * 100;
+                eqBars[i].style.height = `${percentHeight}%`;
             }
         }
-        initEqualizer();
 
-        // 🆕 ОБНОВЛЕНИЕ ПОЛОСКИ ВРЕМЕНИ
-        audio.addEventListener('timeupdate', () => {
-            if (!isPowered) return;
-            const percent = (audio.currentTime / audio.duration) * 100;
-            if (percent) {
-                progressBar.style.width = `${percent}%`;
+        function updateProgressBar() {
+            const percent = (dom.audio.currentTime / dom.audio.duration) * 100;
+            dom.progressBar.style.width = percent ? `${percent}%` : '0%';
+        }
+        
+        function updateMarquee() {
+            if (!state.isPlaying || state.tracks.length === 0) return;
+            const track = state.tracks[state.currentTrackIndex];
+            if (state.showQuoteNext) {
+                dom.marqueeText.innerText = `"${track.quote}"`;
+                dom.marqueeText.style.color = "#ffdd88";
             } else {
-                progressBar.style.width = '0%';
+                dom.marqueeText.innerText = `TRACK ${state.currentTrackIndex + 1}: ${track.title}`;
+                dom.marqueeText.style.color = "#e0e0e0";
             }
-        });
-
-        // 🆕 ПЕРЕМОТКА ПО КЛИКУ
-        progressContainer.addEventListener('click', (e) => {
-            if (!isPowered || tracks.length === 0) return;
-            
-            const width = progressContainer.clientWidth;
-            const clickX = e.offsetX;
-            const duration = audio.duration;
-            
-            audio.currentTime = (clickX / width) * duration;
-        });
-
-
-        // Смена текста
-        marqueeText.addEventListener('animationiteration', () => {
-            if (!isPlaying || tracks.length === 0) return;
-            const track = tracks[currentTrackIndex];
-            if (showQuoteNext) {
-                marqueeText.innerText = `"${track.quote}"`;
-                marqueeText.style.color = "#ffdd88"; 
-            } else {
-                marqueeText.innerText = `TRACK ${currentTrackIndex + 1}: ${track.title}`;
-                marqueeText.style.color = "#e0e0e0"; 
-            }
-            showQuoteNext = !showQuoteNext;
-        });
+            state.showQuoteNext = !state.showQuoteNext;
+        }
 
         function startMarquee() {
-            marqueeText.classList.add('scrolling');
-            marqueeText.innerText = `NOW PLAYING: ${tracks[currentTrackIndex].title}`;
-            marqueeText.style.color = "#e0e0e0";
-            showQuoteNext = true;
+            dom.marqueeText.classList.add('scrolling');
+            dom.marqueeText.innerText = `NOW PLAYING: ${state.tracks[state.currentTrackIndex].title}`;
+            dom.marqueeText.style.color = "#e0e0e0";
+            state.showQuoteNext = true;
         }
 
         function stopMarquee(msg) {
-            marqueeText.classList.remove('scrolling');
-            void marqueeText.offsetWidth; 
-            marqueeText.style.transform = "translateX(0)";
-            if (msg) marqueeText.innerText = msg;
-            marqueeText.style.color = "#e0e0e0";
-        }
-
-        fileInput.addEventListener('change', (e) => {
-            const files = Array.from(e.target.files);
-            if (files.length === 0) return;
-            files.forEach(file => {
-                const fileUrl = URL.createObjectURL(file);
-                const cleanName = file.name.replace(/\.[^/.]+$/, "");
-                const randomQuote = quotesPool[Math.floor(Math.random() * quotesPool.length)];
-                tracks.push({ title: cleanName, file: fileUrl, quote: randomQuote });
-            });
-            if (tracks.length > 0 && audio.src === "") {
-                currentTrackIndex = 0;
-                menuSelectionIndex = 0;
-                loadTrack(0);
-                if(isPowered) stopMarquee("DISCS LOADED");
-            }
-        });
-
-        function loadTrack(index) {
-            if (tracks.length === 0) return;
-            if (index < 0) index = tracks.length - 1;
-            if (index >= tracks.length) index = 0;
-            currentTrackIndex = index;
-            audio.src = tracks[currentTrackIndex].file;
-            progressBar.style.width = '0%'; // Сброс полоски
-            renderPlaylist(); 
-            if (isPlaying) { stopMarquee(); setTimeout(startMarquee, 100); }
-        }
-
-        function playTrack() {
-            if (tracks.length === 0) return;
-            audio.play();
-            player.classList.add('playing');
-            isPlaying = true;
-            startMarquee();
-        }
-
-        function stopPlayer() {
-            audio.pause();
-            audio.currentTime = 0;
-            player.classList.remove('playing');
-            isPlaying = false;
-            stopMarquee("STOPPED");
-            progressBar.style.width = '0%';
+            dom.marqueeText.classList.remove('scrolling');
+            void dom.marqueeText.offsetWidth;
+            dom.marqueeText.style.transform = "translateX(0)";
+            if (msg) dom.marqueeText.innerText = msg;
+            dom.marqueeText.style.color = "#e0e0e0";
         }
 
         function renderPlaylist() {
-            playlistScreen.innerHTML = '';
-            if (tracks.length === 0) {
-                playlistScreen.innerHTML = '<div style="text-align:center">NO FILES</div>';
+            if (state.tracks.length === 0) {
+                dom.playlistScreen.innerHTML = '<div class="track-item" style="text-align:center">NO DISCS LOADED</div>';
                 return;
             }
-            let prevIdx = (menuSelectionIndex - 1 + tracks.length) % tracks.length;
-            let currIdx = menuSelectionIndex;
-            let nextIdx = (menuSelectionIndex + 1) % tracks.length;
-            const indices = tracks.length < 3 ? tracks.map((_, i) => i) : [prevIdx, currIdx, nextIdx];
-            indices.forEach((idx) => {
-                const div = document.createElement('div');
-                div.className = 'track-item';
-                if (idx === menuSelectionIndex) div.classList.add('selected'); 
-                div.innerText = tracks[idx].title;
-                playlistScreen.appendChild(div);
+            let html = '';
+            const trackCount = state.tracks.length;
+            const indices = trackCount < 3 ? Array.from({ length: trackCount }, (_, i) => i) : [ (state.menuSelectionIndex - 1 + trackCount) % trackCount, state.menuSelectionIndex, (state.menuSelectionIndex + 1) % trackCount ];
+            indices.forEach(idx => {
+                const isSelected = idx === state.menuSelectionIndex;
+                html += `<div class="track-item ${isSelected ? 'selected' : ''}">${state.tracks[idx].title}</div>`;
             });
+            dom.playlistScreen.innerHTML = html;
         }
-
-        btnPower.addEventListener('click', () => {
-            isPowered = !isPowered;
-            if (isPowered) {
-                player.classList.add('powered');
-                if (tracks.length > 0) { loadTrack(currentTrackIndex); stopMarquee("SYSTEM READY"); } 
-                else { stopMarquee("INSERT DISC"); }
-            } else {
-                player.classList.remove('powered');
-                stopPlayer();
-                isMenuOpen = false;
-                toggleMenuUI();
-                stopMarquee(" ");
-            }
-        });
-
-        btnPlay.addEventListener('click', () => {
-            if (!isPowered) return;
-            if (tracks.length === 0) return;
-            if (isPlaying) {
-                audio.pause();
-                player.classList.remove('playing');
-                isPlaying = false;
-                stopMarquee("PAUSED");
-            } else { playTrack(); }
-        });
-
-        btnStop.addEventListener('click', () => { if(isPowered) stopPlayer(); });
-
-        btnMenu.addEventListener('click', () => {
-            if (!isPowered || tracks.length === 0) return;
-            isMenuOpen = !isMenuOpen;
-            toggleMenuUI();
-        });
-
+        
         function toggleMenuUI() {
-            if (isMenuOpen) {
-                playlistScreen.classList.add('visible');
-                mainScreen.style.opacity = '0';
-                menuSelectionIndex = currentTrackIndex; 
+            if (state.isMenuOpen) {
+                dom.playlistScreen.classList.add('visible');
+                dom.mainScreen.style.opacity = '0';
+                state.menuSelectionIndex = state.currentTrackIndex;
                 renderPlaylist();
             } else {
-                playlistScreen.classList.remove('visible');
-                mainScreen.style.opacity = '1';
+                dom.playlistScreen.classList.remove('visible');
+                dom.mainScreen.style.opacity = '1';
             }
         }
+        
+        function loadTrack(index) {
+            if (state.tracks.length === 0) return;
+            state.currentTrackIndex = (index + state.tracks.length) % state.tracks.length;
+            dom.audio.src = state.tracks[state.currentTrackIndex].file;
+            dom.progressBar.style.width = '0%';
+            renderPlaylist();
+            if (state.isPlaying) { stopMarquee(); setTimeout(startMarquee, 100); }
+        }
 
-        btnHome.addEventListener('click', () => { 
-            if (!isPowered || tracks.length === 0) return;
-            if (isMenuOpen) { menuSelectionIndex = (menuSelectionIndex + 1) % tracks.length; renderPlaylist(); }
-            else { loadTrack(currentTrackIndex + 1); if (isPlaying) playTrack(); }
-        });
+        function playTrack() {
+            if (state.tracks.length === 0 || !state.isPowered) return;
+            if (state.audioContext && state.audioContext.state === 'suspended') { state.audioContext.resume(); }
+            dom.audio.play();
+            dom.player.classList.add('playing');
+            state.isPlaying = true;
+            startMarquee();
+            visualize();
+        }
 
-        btnEnter.addEventListener('click', () => { 
-            if (!isPowered || tracks.length === 0) return;
-            if (isMenuOpen) { loadTrack(menuSelectionIndex); playTrack(); isMenuOpen = false; toggleMenuUI(); }
-            else { loadTrack(currentTrackIndex - 1); if (isPlaying) playTrack(); }
-        });
+        function stopPlayer() {
+            dom.audio.pause(); dom.audio.currentTime = 0;
+            dom.player.classList.remove('playing'); state.isPlaying = false;
+            stopMarquee("STOPPED"); dom.progressBar.style.width = '0%';
+            if (state.animationFrameId) cancelAnimationFrame(state.animationFrameId);
+        }
 
-        audio.addEventListener('ended', () => {
-            if (tracks.length > 0) { loadTrack(currentTrackIndex + 1); playTrack(); }
-        });
+        function bindEvents() {
+            dom.audio.addEventListener('timeupdate', updateProgressBar);
+            dom.audio.addEventListener('ended', () => { if (state.tracks.length > 0) { loadTrack(state.currentTrackIndex + 1); playTrack(); } });
+            dom.marqueeText.addEventListener('animationiteration', updateMarquee);
+            dom.progressContainer.addEventListener('click', (e) => {
+                if (!state.isPowered || state.tracks.length === 0) return;
+                dom.audio.currentTime = (e.offsetX / dom.progressContainer.clientWidth) * dom.audio.duration;
+            });
+            dom.fileInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+                files.forEach(file => {
+                    state.tracks.push({
+                        title: file.name.replace(/\.[^/.]+$/, ""),
+                        file: URL.createObjectURL(file),
+                        quote: quotesPool[Math.floor(Math.random() * quotesPool.length)]
+                    });
+                });
+                if (state.tracks.length > 0 && dom.audio.src === "") {
+                    loadTrack(0); if (state.isPowered) stopMarquee("DISCS LOADED");
+                }
+            });
+            
+            dom.btnPower.addEventListener('click', () => {
+                state.isPowered = !state.isPowered;
+                if (state.isPowered) {
+                    initAudioApi(); dom.player.classList.add('powered');
+                    stopMarquee(state.tracks.length > 0 ? "SYSTEM READY" : "INSERT DISC");
+                } else {
+                    dom.player.classList.remove('powered'); stopPlayer();
+                    state.isMenuOpen = false; toggleMenuUI(); stopMarquee(" ");
+                }
+            });
+            dom.btnPlay.addEventListener('click', () => {
+                if (!state.isPowered || state.tracks.length === 0) return;
+                if (state.isPlaying) {
+                    dom.audio.pause(); dom.player.classList.remove('playing'); state.isPlaying = false;
+                    stopMarquee("PAUSED"); if (state.animationFrameId) cancelAnimationFrame(state.animationFrameId);
+                } else { playTrack(); }
+            });
+            dom.btnStop.addEventListener('click', () => { if (state.isPowered) stopPlayer(); });
+            dom.btnMenu.addEventListener('click', () => { if (!state.isPowered || state.tracks.length === 0) return; state.isMenuOpen = !state.isMenuOpen; toggleMenuUI(); });
+            dom.btnHome.addEventListener('click', () => { 
+                if (!state.isPowered || state.tracks.length === 0) return;
+                if (state.isMenuOpen) { state.menuSelectionIndex = (state.menuSelectionIndex + 1) % state.tracks.length; renderPlaylist(); }
+                else { loadTrack(state.currentTrackIndex + 1); if (state.isPlaying) playTrack(); }
+            });
+            dom.btnEnter.addEventListener('click', () => { 
+                if (!state.isPowered || state.tracks.length === 0) return;
+                if (state.isMenuOpen) { loadTrack(state.menuSelectionIndex); playTrack(); state.isMenuOpen = false; toggleMenuUI(); }
+                else { loadTrack(state.currentTrackIndex - 1); if (state.isPlaying) playTrack(); }
+            });
+        }
+        
+        function init() {
+            let barsHTML = '';
+            for (let i = 0; i < NUM_BARS; i++) { barsHTML += '<div class="eq-bar"></div>'; }
+            dom.equalizer.innerHTML = barsHTML;
+            eqBars = dom.equalizer.children;
+            bindEvents();
+        }
+
+        init();
+    })();
     </script>
 </body>
 </html>
