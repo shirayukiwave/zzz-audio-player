@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>ZZZ Player - Retro Screen</title>
+    <title>ZZZ Player - Full</title>
     <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
     <style>
@@ -56,87 +56,91 @@
         .player-container.playing .led.play-led { background: #ff3333; box-shadow: 0 0 8px #ff3333; }
 
 
-        /* --- ЭКРАН (ОБНОВЛЕННЫЙ) --- */
+        /* --- ЭКРАН --- */
         .screen-mask {
             position: absolute; z-index: 5; 
             bottom: 65px; left: 50%; transform: translateX(-50%);
             width: 380px; height: 45px; 
-            
-            /* ПРОЗРАЧНЫЙ ФОН + легкое затемнение для читаемости */
             background: rgba(0, 0, 0, 0.3); 
-            
             display: flex; align-items: center;
             overflow: hidden; border-radius: 4px; pointer-events: none;
-            
-            /* Внутренняя тень, чтобы экран казался углубленным */
             box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
         }
-
-        /* Эффект сетки (пикселей) поверх всего экрана */
+        /* Сетка экрана */
         .screen-mask::after {
-            content: '';
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: repeating-linear-gradient(
-                0deg,
-                transparent 0px,
-                transparent 2px,
-                rgba(0, 0, 0, 0.3) 3px
-            );
-            pointer-events: none;
-            z-index: 10;
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0, 0, 0, 0.3) 3px);
+            pointer-events: none; z-index: 10;
         }
 
-        /* --- ЭКВАЛАЙЗЕР (РЕТРО СТИЛЬ) --- */
+        /* Эквалайзер */
         .equalizer-bg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; justify-content: space-between; align-items: flex-end;
             padding: 0 10px; box-sizing: border-box;
-            opacity: 0; transition: opacity 0.5s;
-            z-index: 1;
+            opacity: 0; transition: opacity 0.5s; z-index: 1;
         }
-        .player-container.playing .equalizer-bg { opacity: 0.6; } /* Видимость при игре */
+        .player-container.playing .equalizer-bg { opacity: 0.6; }
 
         .eq-bar {
-            width: 8px;
-            height: 10%;
-            
-            /* ХИТРОСТЬ: Делаем полоски "нарезанными" на сегменты */
-            background: repeating-linear-gradient(
-                to top,
-                #ffaa00 0px,
-                #ffaa00 2px,  /* Цветная часть */
-                transparent 2px,
-                transparent 4px /* Прозрачный разрыв */
-            );
-            
-            /* Свечение */
+            width: 8px; height: 10%;
+            background: repeating-linear-gradient(to top, #ffaa00 0px, #ffaa00 2px, transparent 2px, transparent 4px);
             filter: drop-shadow(0 0 2px #ffaa00);
-            
             animation: bounce 0s infinite alternate;
         }
         @keyframes bounce { 0% { height: 10%; } 100% { height: 90%; } }
 
-
-        /* --- ТЕКСТ --- */
+        /* Текст */
         .screen-content { 
-            position: relative; z-index: 2; 
-            width: 100%; opacity: 0; transition: opacity 0.5s; 
+            position: relative; z-index: 2; width: 100%; opacity: 0; transition: opacity 0.5s; 
             display: flex; align-items: center; height: 100%;
         }
         .player-container.powered .screen-content { opacity: 1; }
 
         .marquee {
-            font-family: 'Share Tech Mono', monospace; 
-            font-size: 18px; color: #e0e0e0; 
-            white-space: nowrap; 
-            transform: translateX(100%); 
-            /* Тень для текста, чтобы он не сливался с эквалайзером */
+            font-family: 'Share Tech Mono', monospace; font-size: 18px; color: #e0e0e0; 
+            white-space: nowrap; transform: translateX(100%); 
             text-shadow: 2px 2px 0px #000, 0 0 10px rgba(255, 255, 255, 0.5);
         }
         .marquee.scrolling { animation: car-scroll 8s linear infinite; }
-        @keyframes car-scroll {
-            0% { transform: translateX(100%); } 
-            100% { transform: translateX(-150%); } 
+        @keyframes car-scroll { 0% { transform: translateX(100%); } 100% { transform: translateX(-150%); } }
+
+
+        /* --- 🆕 ПРОГРЕСС БАР (ЗОНА НАСТРОЙКИ) --- */
+        .progress-area {
+            position: absolute;
+            z-index: 100; /* Поднял слой, чтобы было видно поверх всего */
+            
+            /* 👇 КРУТИ ЭТИ ЦИФРЫ 👇 */
+            bottom: 110px;  /* ВВЕРХ / ВНИЗ */
+            width: 265px;   /* ШИРИНА */
+            height: 15px;   /* ВЫСОТА ЗОНЫ КЛИКА */
+            
+            left: 56.5%; 
+            transform: translateX(-50%);
+            cursor: pointer;
+
+        }
+
+        .progress-fill {
+            height: 60%;
+            width: 0%; 
+            background: #ffaa00; 
+            box-shadow: 0 0 8px #ffaa00;
+            opacity: 0.8; 
+            pointer-events: none; 
+            border-radius: 2px;
+            transition: width 0.1s linear;
+        }
+
+        /* Белый маркер на конце */
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: 0; top: 0; bottom: 0;
+            width: 4px;
+            background: #fff;
+            box-shadow: 0 0 5px #fff;
         }
 
 
@@ -146,20 +150,12 @@
             background: rgba(10, 10, 10, 0.95);
             display: flex; flex-direction: column; justify-content: center;
             padding: 0 15px;
-            font-family: 'Share Tech Mono', monospace; 
-            font-size: 16px; color: #555;
-            opacity: 0; transition: opacity 0.2s;
-            z-index: 20; /* Выше чем сетка экрана */
+            font-family: 'Share Tech Mono', monospace; font-size: 16px; color: #555;
+            opacity: 0; transition: opacity 0.2s; z-index: 20;
         }
         .playlist-overlay.visible { opacity: 1; pointer-events: auto; }
-        .track-item { 
-            padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-            border-bottom: 1px solid #222;
-        }
-        .track-item.selected { 
-            color: #ffaa00; text-shadow: 0 0 8px rgba(255, 170, 0, 0.6); 
-            font-weight: bold; background: rgba(255, 170, 0, 0.1);
-        }
+        .track-item { padding: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid #222; }
+        .track-item.selected { color: #ffaa00; text-shadow: 0 0 8px rgba(255, 170, 0, 0.6); font-weight: bold; background: rgba(255, 170, 0, 0.1); }
         .track-item::before { content: "  "; }
         .track-item.selected::before { content: "> "; }
 
@@ -172,7 +168,7 @@
         #btn-menu  { width: 70px; height: 10px; bottom: 160px; left: 130px; }
         #btn-home  { width: 70px; height: 10px; bottom: 160px; left: 202px; }
 
-        /* UPLOAD BTN */
+        /* UPLOAD */
         .upload-controls { margin-top: 20px; z-index: 100; }
         .upload-btn {
             background: #111; color: #ddd; border: 2px solid #ffaa00; padding: 10px 25px;
@@ -199,18 +195,17 @@
             <div class="led play-led"></div>
         </div>
         
+        <!-- ПРОГРЕСС БАР (Шкала времени) -->
+        <div class="progress-area" id="progress-container" title="Seek Time">
+            <div class="progress-fill" id="progress-bar"></div>
+        </div>
+
         <!-- Экран -->
         <div class="screen-mask">
-            
-            <!-- ЭКВАЛАЙЗЕР -->
             <div class="equalizer-bg" id="equalizer"></div>
-
-            <!-- ТЕКСТ -->
             <div class="screen-content" id="main-screen">
                 <div class="marquee" id="marquee-text">WAITING FOR DISCS...</div>
             </div>
-            
-            <!-- МЕНЮ -->
             <div class="playlist-overlay" id="playlist-screen"></div>
         </div>
 
@@ -250,6 +245,10 @@
         const playlistScreen = document.getElementById('playlist-screen');
         const fileInput = document.getElementById('file-input');
         const equalizer = document.getElementById('equalizer');
+        
+        // Элементы прогресс бара
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
 
         const btnPower = document.getElementById('btn-power');
         const btnPlay = document.getElementById('btn-play');
@@ -265,28 +264,49 @@
         let menuSelectionIndex = 0;
         let showQuoteNext = false; 
 
-        // Инициализация Эквалайзера (20 столбиков)
         function initEqualizer() {
             for(let i=0; i<20; i++) {
                 const bar = document.createElement('div');
                 bar.className = 'eq-bar';
-                // Случайная задержка для хаотичного движения
                 bar.style.animationDuration = (0.2 + Math.random() * 0.4) + 's';
                 equalizer.appendChild(bar);
             }
         }
         initEqualizer();
 
-        // Смена текста (Круг прошел)
+        // 🆕 ОБНОВЛЕНИЕ ПОЛОСКИ ВРЕМЕНИ
+        audio.addEventListener('timeupdate', () => {
+            if (!isPowered) return;
+            const percent = (audio.currentTime / audio.duration) * 100;
+            if (percent) {
+                progressBar.style.width = `${percent}%`;
+            } else {
+                progressBar.style.width = '0%';
+            }
+        });
+
+        // 🆕 ПЕРЕМОТКА ПО КЛИКУ
+        progressContainer.addEventListener('click', (e) => {
+            if (!isPowered || tracks.length === 0) return;
+            
+            const width = progressContainer.clientWidth;
+            const clickX = e.offsetX;
+            const duration = audio.duration;
+            
+            audio.currentTime = (clickX / width) * duration;
+        });
+
+
+        // Смена текста
         marqueeText.addEventListener('animationiteration', () => {
             if (!isPlaying || tracks.length === 0) return;
             const track = tracks[currentTrackIndex];
             if (showQuoteNext) {
                 marqueeText.innerText = `"${track.quote}"`;
-                marqueeText.style.color = "#ffdd88"; // Желтый для цитаты
+                marqueeText.style.color = "#ffdd88"; 
             } else {
                 marqueeText.innerText = `TRACK ${currentTrackIndex + 1}: ${track.title}`;
-                marqueeText.style.color = "#e0e0e0"; // Белый для названия
+                marqueeText.style.color = "#e0e0e0"; 
             }
             showQuoteNext = !showQuoteNext;
         });
@@ -306,18 +326,15 @@
             marqueeText.style.color = "#e0e0e0";
         }
 
-        // Загрузка
         fileInput.addEventListener('change', (e) => {
             const files = Array.from(e.target.files);
             if (files.length === 0) return;
-
             files.forEach(file => {
                 const fileUrl = URL.createObjectURL(file);
                 const cleanName = file.name.replace(/\.[^/.]+$/, "");
                 const randomQuote = quotesPool[Math.floor(Math.random() * quotesPool.length)];
                 tracks.push({ title: cleanName, file: fileUrl, quote: randomQuote });
             });
-
             if (tracks.length > 0 && audio.src === "") {
                 currentTrackIndex = 0;
                 menuSelectionIndex = 0;
@@ -326,13 +343,13 @@
             }
         });
 
-        // Плеер
         function loadTrack(index) {
             if (tracks.length === 0) return;
             if (index < 0) index = tracks.length - 1;
             if (index >= tracks.length) index = 0;
             currentTrackIndex = index;
             audio.src = tracks[currentTrackIndex].file;
+            progressBar.style.width = '0%'; // Сброс полоски
             renderPlaylist(); 
             if (isPlaying) { stopMarquee(); setTimeout(startMarquee, 100); }
         }
@@ -351,6 +368,7 @@
             player.classList.remove('playing');
             isPlaying = false;
             stopMarquee("STOPPED");
+            progressBar.style.width = '0%';
         }
 
         function renderPlaylist() {
@@ -363,7 +381,6 @@
             let currIdx = menuSelectionIndex;
             let nextIdx = (menuSelectionIndex + 1) % tracks.length;
             const indices = tracks.length < 3 ? tracks.map((_, i) => i) : [prevIdx, currIdx, nextIdx];
-
             indices.forEach((idx) => {
                 const div = document.createElement('div');
                 div.className = 'track-item';
@@ -373,7 +390,6 @@
             });
         }
 
-        // Кнопки
         btnPower.addEventListener('click', () => {
             isPowered = !isPowered;
             if (isPowered) {
